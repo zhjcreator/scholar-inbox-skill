@@ -6,6 +6,12 @@ description: |
   trending research, get daily paper digests, manage bookmarks and collections, explore conference
   proceedings, or perform semantic paper searches. The tool is designed for both human researchers
   and AI agents, with JSON output support for programmatic use.
+metadata:
+  openclaw:
+    requires:
+      bins: ["uv"]
+      env: ["SCHOLAR_INBOX_SHA_KEY"]
+    primaryEnv: "SCHOLAR_INBOX_SHA_KEY"
 ---
 
 # Scholar Inbox CLI
@@ -39,25 +45,57 @@ The CLI binary will be available as `scholarinboxcli` (if using `uv tool install
 
 ## Authentication
 
-First-time use requires authentication via a Magic Link from the Scholar Inbox web app:
+First-time use requires authentication via a Magic Link from the Scholar Inbox web app.
 
 ### Getting your sha_key
 
-1. Visit https://www.scholar-inbox.com and log in to your account
-2. Open browser Developer Tools (F12) → Network tab
-3. Find the request to `https://api.scholar-inbox.com/api/session_info`
-4. Look at the Response — find the `sha_key` field (a long hex string like `a1b2c3d4...`)
-5. Copy this value
+1. Visit https://www.scholar-inbox.com and **log in** to your account
+2. Open browser **Developer Tools** (press `F12` or `Cmd+Option+I` on Mac)
+3. Go to the **Network** tab
+4. Refresh the page if needed
+5. Look for a request to `https://api.scholar-inbox.com/api/session_info`
+6. Click on it → select the **Response** tab
+7. Find the `sha_key` field (a long hexadecimal string like `a1b2c3d4e5f6...`)
+8. **Copy this value** — this is your authentication key
+
+### Configure in OpenClaw
+
+For OpenClaw users, set the sha_key in your configuration file:
+
+```bash
+# Edit ~/.openclaw/openclaw.json
+```
+
+Add this configuration:
+
+```json
+{
+  "skills": {
+    "entries": {
+      "scholar-inbox-cli": {
+        "enabled": true,
+        "env": {
+          "SCHOLAR_INBOX_SHA_KEY": "your-sha-key-here"
+        }
+      }
+    }
+  }
+}
+```
+
+The `SCHOLAR_INBOX_SHA_KEY` environment variable will be automatically injected when the skill loads.
 
 ### Login with sha_key
 
 Construct the Magic Link URL using your sha_key and today's date:
 
 ```bash
+# Using environment variable (recommended for OpenClaw)
+scholarinboxcli auth login --url "https://www.scholar-inbox.com/login?sha_key=$SCHOLAR_INBOX_SHA_KEY&date=$(date +%m-%d-%Y)"
+
+# Or with explicit key
 scholarinboxcli auth login --url "https://www.scholar-inbox.com/login?sha_key=YOUR_SHA_KEY&date=MM-DD-YYYY"
 ```
-
-Replace `YOUR_SHA_KEY` with your actual key and `MM-DD-YYYY` with today's date.
 
 ### Check authentication status
 
@@ -254,6 +292,7 @@ scholarinboxcli interactions list --json
 - **Collection operations failing**: Retry or verify via the web interface
 - **"uv not found"**: Install uv first via `brew install uv`
 - **CLI not found after install**: Ensure uv's tool bin directory is in your PATH, or use the full path to the venv binary
+- **SCHOLAR_INBOX_SHA_KEY not set**: Configure it in `~/.openclaw/openclaw.json` (OpenClaw) or export it in your shell
 
 ## Reference
 

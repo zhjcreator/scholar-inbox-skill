@@ -1,6 +1,7 @@
 # Scholar Inbox CLI Skill
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![OpenClaw](https://img.shields.io/badge/OpenClaw-Skill-blue)](https://clawhub.ai)
 
 An [OpenClaw](https://clawhub.ai) skill for interacting with [Scholar Inbox](https://www.scholar-inbox.com) — a personalized academic paper recommendation platform. Search papers, browse trending research, manage bookmarks and collections, all via command line.
 
@@ -14,11 +15,14 @@ An [OpenClaw](https://clawhub.ai) skill for interacting with [Scholar Inbox](htt
 - **Conference Papers** — Explore proceedings from major ML/AI conferences
 - **JSON Output** — Structured data for AI agent workflows
 
+## Requirements
+
+- [uv](https://github.com/astral-sh/uv) — Python package manager
+- `SCHOLAR_INBOX_SHA_KEY` environment variable (see Authentication section)
+
 ## Installation
 
-### Prerequisites
-
-Install [uv](https://github.com/astral-sh/uv) (Python package manager):
+### 1. Install uv
 
 ```bash
 # macOS/Linux
@@ -33,7 +37,7 @@ pip install uv
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-### Install the CLI
+### 2. Install the CLI
 
 ```bash
 # Option 1: Install globally with uv
@@ -43,11 +47,34 @@ uv tool install scholarinboxcli
 bash scripts/setup_env.sh
 ```
 
+### 3. Configure OpenClaw (if using OpenClaw)
+
+Add to `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "skills": {
+    "entries": {
+      "scholar-inbox-cli": {
+        "enabled": true,
+        "env": {
+          "SCHOLAR_INBOX_SHA_KEY": "your-sha-key-here"
+        }
+      }
+    }
+  }
+}
+```
+
+The skill declares `metadata.openclaw.requires.env: ["SCHOLAR_INBOX_SHA_KEY"]` so OpenClaw will:
+- Check that this environment variable is set before loading the skill
+- Inject it into the process environment when the skill is invoked
+
 ## Authentication
 
-Scholar Inbox requires authentication via a Magic Link. Here's how to get your credentials:
+Scholar Inbox requires authentication via a Magic Link using a `sha_key`.
 
-### Step 1: Get your sha_key
+### Getting your sha_key
 
 1. Visit https://www.scholar-inbox.com and **log in** to your account
 2. Open browser **Developer Tools** (press `F12` or `Cmd+Option+I` on Mac)
@@ -60,24 +87,21 @@ Scholar Inbox requires authentication via a Magic Link. Here's how to get your c
 
 ![Where to find sha_key](https://i.imgur.com/placeholder.png)
 
-> **Note:** The `sha_key` is sensitive — treat it like a password. Don't share it publicly.
+> **Security Note:** The `sha_key` is sensitive — treat it like a password. Don't commit it to git or share it publicly.
 
-### Step 2: Login
+### Login
 
-Construct the Magic Link URL and authenticate:
+Once you have the `SCHOLAR_INBOX_SHA_KEY` environment variable set:
 
 ```bash
-# Replace YOUR_SHA_KEY with your actual key
-# Replace MM-DD-YYYY with today's date
-scholarinboxcli auth login --url "https://www.scholar-inbox.com/login?sha_key=YOUR_SHA_KEY&date=MM-DD-YYYY"
+# Using environment variable (recommended)
+scholarinboxcli auth login --url "https://www.scholar-inbox.com/login?sha_key=$SCHOLAR_INBOX_SHA_KEY&date=$(date +%m-%d-%Y)"
+
+# Or with explicit key
+scholarinboxcli auth login --url "https://www.scholar-inbox.com/login?sha_key=YOUR_KEY&date=04-01-2026"
 ```
 
-Example:
-```bash
-scholarinboxcli auth login --url "https://www.scholar-inbox.com/login?sha_key=a1b2c3d4e5f6&date=04-01-2026"
-```
-
-### Step 3: Verify
+### Verify authentication
 
 ```bash
 scholarinboxcli auth status
@@ -189,11 +213,30 @@ scholar-inbox-skill/
 
 See `references/cli-reference.md` for all commands and options.
 
+## OpenClaw Integration
+
+This skill is designed for [OpenClaw](https://clawhub.ai) with the following metadata:
+
+```yaml
+metadata:
+  openclaw:
+    requires:
+      bins: ["uv"]
+      env: ["SCHOLAR_INBOX_SHA_KEY"]
+    primaryEnv: "SCHOLAR_INBOX_SHA_KEY"
+```
+
+This ensures:
+- The skill only loads if `uv` is installed
+- The skill only loads if `SCHOLAR_INBOX_SHA_KEY` is configured
+- The environment variable is automatically injected when the skill runs
+
 ## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| `uv: command not found` | Install uv first (see Prerequisites) |
+| `uv: command not found` | Install uv first (see Installation) |
+| `SCHOLAR_INBOX_SHA_KEY not set` | Configure in `~/.openclaw/openclaw.json` or export in shell |
 | `scholarinboxcli: command not found` | Use full path: `.venv/bin/scholarinboxcli` or add uv tool bin to PATH |
 | Authentication fails | Get a fresh sha_key from browser (they may expire) |
 | Empty results | Check auth status first: `scholarinboxcli auth status` |
@@ -207,4 +250,5 @@ MIT License — see [LICENSE](LICENSE) file.
 - [Scholar Inbox](https://www.scholar-inbox.com)
 - [scholarinboxcli on PyPI](https://pypi.org/project/scholarinboxcli/)
 - [OpenClaw/ClawHub](https://clawhub.ai)
+- [OpenClaw Documentation](https://docs.openclaw.ai)
 - [Original CLI Repository](https://github.com/mrshu/scholarinboxcli)
