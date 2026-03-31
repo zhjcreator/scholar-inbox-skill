@@ -1,6 +1,11 @@
 ---
 name: scholar-inbox-cli
-description: "This skill provides access to Scholar Inbox (https://www.scholar-inbox.com) via its command-line interface scholarinboxcli. Use this skill when the user wants to search academic papers, browse trending research, get daily paper digests, manage bookmarks and collections, explore conference proceedings, or perform semantic paper searches. The tool is designed for both human researchers and AI agents, with JSON output support for programmatic use."
+description: |
+  This skill provides access to Scholar Inbox (https://www.scholar-inbox.com) via its command-line
+  interface scholarinboxcli. Use this skill when the user wants to search academic papers, browse
+  trending research, get daily paper digests, manage bookmarks and collections, explore conference
+  proceedings, or perform semantic paper searches. The tool is designed for both human researchers
+  and AI agents, with JSON output support for programmatic use.
 ---
 
 # Scholar Inbox CLI
@@ -15,45 +20,48 @@ managed with `uv`. Provides paper discovery, search, bookmarking, and collection
    - macOS/Linux: `brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`
    - Windows: `pip install uv` or `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`
 
-2. **Set up the environment** using the bundled setup script:
-
-```bash
-bash ~/.workbuddy/skills/scholar-inbox/scripts/setup_env.sh
-```
-
-This creates a uv-managed virtual environment at `~/.workbuddy/skills/scholar-inbox/.venv/` and
-installs `scholarinboxcli`. After setup, the CLI binary is at:
-
-```
-~/.workbuddy/skills/scholar-inbox/.venv/bin/scholarinboxcli
-```
-
-Store this path as the default CLI binary for all subsequent commands. If the script fails, fall
-back to:
+2. **Install the CLI tool**:
 
 ```bash
 uv tool install scholarinboxcli
 ```
 
+Or install into a local virtual environment:
+
+```bash
+uv venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+uv pip install scholarinboxcli
+```
+
+The CLI binary will be available as `scholarinboxcli` (if using `uv tool install`) or at
+`.venv/bin/scholarinboxcli` (if using local venv).
+
 ## Authentication
 
 First-time use requires authentication via a Magic Link from the Scholar Inbox web app:
 
-1. Visit https://www.scholar-inbox.com and log in to obtain a Magic Link URL
-2. The Magic Link URL has this format: `https://www.scholar-inbox.com/login?sha_key=YOUR_KEY&date=MM-DD-YYYY`
-3. Run authentication:
+### Getting your sha_key
+
+1. Visit https://www.scholar-inbox.com and log in to your account
+2. Open browser Developer Tools (F12) → Network tab
+3. Find the request to `https://api.scholar-inbox.com/api/session_info`
+4. Look at the Response — find the `sha_key` field (a long hex string like `a1b2c3d4...`)
+5. Copy this value
+
+### Login with sha_key
+
+Construct the Magic Link URL using your sha_key and today's date:
 
 ```bash
-scholarinboxcli auth login --url "https://www.scholar-inbox.com/login?sha_key=YOUR_KEY&date=MM-DD-YYYY"
+scholarinboxcli auth login --url "https://www.scholar-inbox.com/login?sha_key=YOUR_SHA_KEY&date=MM-DD-YYYY"
 ```
 
-If the user provides only a `sha_key` without the full URL, construct the URL manually using the
-current date in `MM-DD-YYYY` format.
+Replace `YOUR_SHA_KEY` with your actual key and `MM-DD-YYYY` with today's date.
 
 ### Check authentication status
 
-Always verify authentication before executing commands. Run `auth status` first — if not
-authenticated, guide the user through the login flow instead of proceeding with other commands.
+Always verify authentication before executing commands:
 
 ```bash
 scholarinboxcli auth status
@@ -245,8 +253,7 @@ scholarinboxcli interactions list --json
 - **Authentication errors**: Re-run `auth login` with a fresh Magic Link
 - **Collection operations failing**: Retry or verify via the web interface
 - **"uv not found"**: Install uv first via `brew install uv`
-- **pip detection failure in setup script**: The script was updated to use `uv pip install`
-  directly — ensure uv >=0.10
+- **CLI not found after install**: Ensure uv's tool bin directory is in your PATH, or use the full path to the venv binary
 
 ## Reference
 
