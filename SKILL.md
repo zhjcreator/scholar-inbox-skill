@@ -280,6 +280,37 @@ View reading, liked, and disliked papers:
 scholarinboxcli interactions list --json
 ```
 
+### Rate Papers
+
+Rate a paper (like/dislike) via the Scholar Inbox API.
+
+**Note**: This is a direct API call since `scholarinboxcli` doesn't have a built-in `rate` command.
+
+```bash
+# Like a paper (rating: 1)
+curl -X POST "https://api.scholar-inbox.com/api/make_rating/" \
+  -H "Content-Type: application/json" \
+  -H "X-sha-key: $SCHOLAR_INBOX_SHA_KEY" \
+  -d '{"rating": 1, "id": "4636621"}'
+
+# Dislike a paper (rating: 0)
+curl -X POST "https://api.scholar-inbox.com/api/make_rating/" \
+  -H "Content-Type: application/json" \
+  -H "X-sha-key: $SCHOLAR_INBOX_SHA_KEY" \
+  -d '{"rating": 0, "id": "4636621"}'
+```
+
+**Request fields**:
+
+| Field   | Type    | Required | Description                                      |
+|---------|---------|----------|--------------------------------------------------|
+| `rating`| integer | Yes      | Rating value: `1` = like, `0` = dislike          |
+| `id`    | string  | Yes      | Paper ID (can be found in JSON responses as `_id`) |
+
+**Response**: Returns the updated paper object with the new rating applied.
+
+**Tip**: You can find paper IDs from other commands (e.g., `trending`, `search`, `digest`) in the `_id` field of each paper object.
+
 ## Output Modes
 
 - **Interactive mode** (default): Rich table display in terminal via `rich`

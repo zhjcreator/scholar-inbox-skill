@@ -413,6 +413,61 @@ scholarinboxcli conference explore "CONFERENCE_NAME" --json
 
 ---
 
+## make_rating — Rate Papers
+
+Rate a paper (like/dislike) via the Scholar Inbox API.
+
+> **Note**: This is a direct API call. The `scholarinboxcli` CLI does not have a built-in `rate` or `make_rating` subcommand. Use `curl` or any HTTP client to call this endpoint.
+
+### Endpoint
+
+```
+POST https://api.scholar-inbox.com/api/make_rating/
+```
+
+### Request
+
+**Headers**:
+
+| Header          | Required | Description                       |
+|-----------------|----------|-----------------------------------|
+| `Content-Type`  | Yes      | Must be `application/json`        |
+| `X-sha-key`     | Yes      | Your `SCHOLAR_INBOX_SHA_KEY`     |
+
+**Body** (JSON):
+
+| Field   | Type    | Required | Description                                      |
+|---------|---------|----------|--------------------------------------------------|
+| `rating`| integer | Yes      | `1` = like, `0` = dislike                        |
+| `id`    | string  | Yes      | Paper ID (from `_id` field in other API responses) |
+
+### Examples
+
+```bash
+# Like a paper (rating: 1)
+curl -X POST "https://api.scholar-inbox.com/api/make_rating/" \
+  -H "Content-Type: application/json" \
+  -H "X-sha-key: $SCHOLAR_INBOX_SHA_KEY" \
+  -d '{"rating": 1, "id": "4636621"}'
+
+# Dislike a paper (rating: 0)
+curl -X POST "https://api.scholar-inbox.com/api/make_rating/" \
+  -H "Content-Type: application/json" \
+  -H "X-sha-key: $SCHOLAR_INBOX_SHA_KEY" \
+  -d '{"rating": 0, "id": "4636621"}'
+```
+
+### Finding Paper IDs
+
+Paper IDs can be found in the `_id` field of paper objects returned by other commands:
+
+```bash
+# Get trending papers and extract IDs
+scholarinboxcli trending --category ALL --days 7 --json | jq '.digest_df[]._id'
+```
+
+---
+
 ## Output Modes
 
 | Mode       | Trigger                      | Description                    |
