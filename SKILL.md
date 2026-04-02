@@ -6,6 +6,9 @@ description: |
   trending research, get daily paper digests, manage bookmarks and collections, explore conference
   proceedings, perform semantic paper searches, or rate papers (like/dislike). The tool is designed
   for both human researchers and AI agents, with JSON output support for programmatic use.
+  
+  **This module inherits from scholarinboxcli.ScholarInboxClient** - all parent class methods are
+  available plus extended functionality.
 metadata:
   openclaw:
     requires:
@@ -17,7 +20,21 @@ metadata:
 # Scholar Inbox Python API
 
 Interact with the Scholar Inbox academic paper platform via the Python API (`scholar_inbox_api.py`).
-Provides paper discovery, search, bookmarking, collection management, and paper rating.
+This module **inherits from `scholarinboxcli.ScholarInboxClient`** and extends it with additional
+convenience methods and paper rating functionality.
+
+## Architecture
+
+```
+scholarinboxcli.ScholarInboxClient (父类)
+    │
+    └── MyScholarInboxClient (子类)
+            ├── 继承所有父类方法 (search, get_digest, collections, etc.)
+            ├── login_with_sha_key() - sha_key 登录
+            ├── rate_paper() - 论文评分
+            ├── like_paper() / dislike_paper() - 点赞/点踩
+            └── 更多便捷方法...
+```
 
 ## Prerequisites
 
@@ -26,10 +43,10 @@ Provides paper discovery, search, bookmarking, collection management, and paper 
    - macOS/Linux: `brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`
    - Windows: `pip install uv` or `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`
 
-2. **Install httpx** (required by the API):
+2. **Install scholarinboxcli** (required by the API):
 
 ```bash
-uv pip install httpx
+uv pip install scholarinboxcli
 ```
 
 Or use the setup script:
@@ -40,98 +57,80 @@ Or use the setup script:
 
 ## Authentication
 
-The API uses `X-sha-key` header for authentication. Set the `SCHOLAR_INBOX_SHA_KEY` environment
-variable or pass the sha_key directly when initializing the client.
+The API supports two authentication methods:
 
-### Getting your sha_key
+### Method 1: Using sha_key (Recommended)
 
-1. Visit https://www.scholar-inbox.com and **log in** to your account
-2. Open browser **Developer Tools** (press `F12` or `Cmd+Option+I` on Mac)
-3. Go to the **Network** tab
-4. Refresh the page if needed
-5. Look for a request to `https://api.scholar-inbox.com/api/session_info`
-6. Click on it → select the **Response** tab
-7. Find the `sha_key` field (a long hexadecimal string like `a1b2c3d4e5f6...`)
-8. **Copy this value** — this is your authentication key
+Get your sha_key from https://www.scholar-inbox.com:
+1. Log in to your account
+2. Open browser Developer Tools (F12 or Cmd+Option+I)
+3. Go to Network tab
+4. Find request to `api/session_info`
+5. Copy the `sha_key` value from response
 
-### Configure in OpenClaw
+### Method 2: Using magic link
 
-For OpenClaw users, set the sha_key in your configuration file:
-
-```bash
-# Edit ~/.openclaw/openclaw.json
-```
-
-Add this configuration:
-
-```json
-{
-  "skills": {
-    "entries": {
-      "scholar-inbox-api": {
-        "enabled": true,
-        "env": {
-          "SCHOLAR_INBOX_SHA_KEY": "your-sha-key-here"
-        }
-      }
-    }
-  }
-}
-```
-
-The `SCHOLAR_INBOX_SHA_KEY` environment variable will be automatically injected when the skill loads.
+Use the full login URL from Scholar Inbox.
 
 ### Python API Usage
 
 ```python
-from scholar_inbox_api import ScholarInboxClient
+from scholar_inbox_api import MyScholarInboxClient
 
-# Create client (reads SCHOLAR_INBOX_SHA_KEY from environment)
-client = ScholarInboxClient.from_env()
+# Method 1: From environment variable (SCHOLAR_INBOX_SHA_KEY)
+client = MyScholarInboxClient.from_env()
 
-# Or with explicit sha_key
-client = ScholarInboxClient(sha_key="your-sha-key")
+# Method 2: With explicit sha_key
+client = MyScholarInboxClient.from_sha_key("your-sha-key")
 
-# Login and verify
-client.login_with_sha_key("your-sha-key")
-session = client.session_info()
-print(f"Logged in as: {session.username}")
+# Method 3: With magic link
+client = MyScholarInboxClient.from_magic_link("https://www.scholar-inbox.com/login?sha_key=...")
+
+# Check authentication
+if client.is_authenticated:
+    print("Logged in!")
+    user = client.get_current_user()
+    print(f"User: {user}")
 ```
 
 ### Check authentication status
 
 ```python
-# Check if authenticated
-is_auth = client.check_auth()
+# Property-based check
+if client.is_authenticated:
+    print("Authenticated")
 
-# Get session info
-session = client.session_info()
-print(f"Authenticated: {session.is_authenticated}")
+# Get current user
+user = client.get_current_user()
+if user:
+    print(f"Logged in as: {user}")
 ```
 
-Override the API base URL with the `SCHOLAR_INBOX_API_BASE` environment variable.
+Override the API base URL with `SCHOLAR_INBOX_API_BASE` environment variable.
 
 ## Core Workflow
 
 ### Python API Usage Pattern
 
-Always parse JSON responses for structured data in AI agent workflows:
+All parent class methods are inherited. Use them directly:
 
 ```python
-from scholar_inbox_api import ScholarInboxClient
+from scholar_inbox_api import MyScholarInboxClient
 
-client = ScholarInboxClient.from_env()
+client = MyScholarInboxClient.from_env()
 
-# Search papers
+# Search papers (inherited from parent)
 results = client.search("transformers", limit=5)
 papers = results.get("digest_df", [])
 
-# Present results
-for paper in papers:
-    print(f"Title: {paper['title']}")
-    print(f"Authors: {', '.join(paper.get('authors', []))}")
-    print(f"Venue: {paper.get('display_venue', 'N/A')}")
-    print()
+# Get digest (inherited from parent)
+digest = client.get_digest()
+
+# Trending papers (inherited from parent)
+trending = client.get_trending(category="ALL", days=7)
+
+# Collections (inherited from parent)
+collections = client.collections_list()
 ```
 
 ### Presenting results to the user
@@ -150,12 +149,8 @@ When displaying paper results from JSON, extract and present these key fields:
 | Citations | `citations` | Citation count (null if unavailable) |
 | Likes | `total_likes` | Number of likes on the platform |
 | Reads | `total_read` | Number of reads on the platform |
-| GitHub | `github_url` | Associated GitHub repo link |
-| HTML | `html_link` | ArXiv HTML version link |
-| Conference | `conference` / `abbreviation` | Full name / short name of associated conference |
 | Paper ID | `_id` | Unique paper ID (needed for rating) |
 | Similarity | `similarity` | (semantic search only) 0-100 similarity score |
-| Highlights | `inferredHighlights` | Auto-detected key passages with `startIndex`/`endIndex` |
 
 For the full JSON response schema, read `references/json-response-schema.md`.
 
@@ -216,15 +211,7 @@ Search papers by keywords with highlighting:
 # Search for papers
 results = client.search("graph neural networks", limit=10)
 papers = results.get("digest_df", [])
-
-# Access highlighting info
-highlights = results.get("abstract_highlighting_starts_ends", [])
 ```
-
-Response includes:
-- `digest_df`: array of paper objects (same schema as other commands)
-- `abstract_highlighting_starts_ends`: array of highlight ranges per paper
-- `authors_highlighting_starts_ends`: array of author name highlight ranges
 
 ### Semantic Search
 
@@ -240,99 +227,76 @@ papers = results.get("digest_df", [])
 ```
 
 Each result includes a `similarity` field (0-100) and `similarity_color` for relevance ranking.
-Semantic search understands meaning and context, making it more effective for exploratory queries.
 
 ### Bookmarks
 
 ```python
 # List all bookmarks
-bookmarks = client.get_bookmarks()
+bookmarks = client.bookmarks()
 
 # Add a paper to bookmarks
-client.add_bookmark("12345")
+client.bookmark_add("12345")
 
 # Remove a paper from bookmarks
-client.remove_bookmark("12345")
+client.bookmark_remove("12345")
 ```
 
 ### Collections
 
 ```python
 # List all collections
-collections = client.get_collections()
+collections = client.collections_list()
 
 # Create a new collection
-client.create_collection("My Papers")
-
-# Rename a collection
-client.rename_collection("Old Name", "New Name")
-
-# Delete a collection
-client.delete_collection("My Papers")
-
-# Add papers to a collection
-client.add_to_collection("My Papers", ["12345", "67890"])
-
-# Remove papers from a collection
-client.remove_from_collection("My Papers", ["12345"])
+client.collection_create("My Papers")
 
 # View papers in a collection
-papers = client.get_collection_papers("My Papers")
+papers = client.collection_papers("collection_id")
 
 # Get similar paper recommendations
-similar = client.get_similar_papers("My Papers", sort="year")
+similar = client.collections_similar(["collection_id1", "collection_id2"])
 ```
 
 ### Conference Papers
 
 ```python
 # List available conferences
-conferences = client.get_conferences()
+conferences = client.conference_list()
 
 # Explore papers from a specific conference
-papers = client.explore_conference("ICLR 2025")
+papers = client.conference_explorer()
 ```
 
-Conference response fields: `conference_id`, `short_title` (e.g., "CVPR 2024"),
-`full_title`, `conference_url`, `start_date`, `end_date`.
+### Rate Papers (Extended Feature)
 
-### Interaction History
-
-View reading, liked, and disliked papers:
-
-```python
-# Get all interactions
-interactions = client.get_interactions()
-
-# Filter by type
-liked = client.get_interactions(interaction_type="liked")
-disliked = client.get_interactions(interaction_type="disliked")
-```
-
-### Rate Papers
-
-Rate a paper (like/dislike) using the Python API:
+Rate a paper (like/dislike) using the extended API:
 
 ```python
 # Like a paper (rating: 1)
-result = client.make_rating(paper_id="4636621", rating=1)
+result = client.like_paper("4636621")
 
-# Dislike a paper (rating: 0)
-result = client.make_rating(paper_id="4636621", rating=0)
+# Dislike a paper (rating: -1)
+result = client.dislike_paper("4636621")
 
-# Convenience methods
-client.like_paper("4636621")
-client.dislike_paper("4636621")
+# Or use the generic rate method
+result = client.rate_paper("4636621", rating=1)  # 1=upvote, -1=downvote, 0=neutral
+
+# Remove rating
+result = client.remove_rating("4636621")
 ```
 
-**Request fields**:
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `paper_id` | string | Yes | Paper ID (from `_id` field in API responses) |
-| `rating` | int | Yes | `1` = like, `0` = dislike |
-
 **Tip**: You can find paper IDs from other commands (e.g., `trending`, `search`, `digest`) in the `_id` field of each paper object.
+
+### Quick Search Convenience Method
+
+```python
+# Simple wrapper around search()
+results = client.quick_search("LLM", limit=5)
+
+# Find papers with mode selection
+results = client.find_papers("reasoning", mode="keyword", limit=10)
+results = client.find_papers("reasoning", mode="semantic", limit=10)
+```
 
 ## CLI Interface
 
@@ -343,7 +307,13 @@ The API also provides a CLI interface for quick commands:
 python scholar_inbox_api.py login YOUR_SHA_KEY
 
 # Get session info
-python scholar_inbox_api.py session
+python scholar_inbox_api.py status
+
+# Get today's digest
+python scholar_inbox_api.py digest
+
+# Get digest for specific date
+python scholar_inbox_api.py digest --date 04-01-2026
 
 # Get trending papers
 python scholar_inbox_api.py trending --category ALL --days 7
@@ -356,12 +326,6 @@ python scholar_inbox_api.py search "reasoning in LLMs" --semantic
 
 # Rate a paper
 python scholar_inbox_api.py rate 4636621 1
-
-# Get bookmarks
-python scholar_inbox_api.py bookmarks
-
-# List collections
-python scholar_inbox_api.py collections
 ```
 
 ## Troubleshooting
@@ -369,11 +333,11 @@ python scholar_inbox_api.py collections
 - **Authentication errors**: Re-run `login_with_sha_key()` with a fresh sha_key
 - **Collection operations failing**: Retry or verify via the web interface
 - **"uv not found"**: Install uv first via `brew install uv`
-- **httpx not installed**: Run `uv pip install httpx` or `./scripts/setup_env.sh`
-- **SCHOLAR_INBOX_SHA_KEY not set**: Configure it in `~/.openclaw/openclaw.json` (OpenClaw) or export it in your shell
+- **scholarinboxcli not installed**: Run `uv pip install scholarinboxcli` or `./scripts/setup_env.sh`
+- **SCHOLAR_INBOX_SHA_KEY not set**: Configure it in your environment or pass sha_key directly
 
 ## Reference
 
-- `scholar_inbox_api.py` — Complete Python API with all methods documented
-- `references/cli-reference.md` — Complete CLI command reference with all flags and options
+- `scholar_inbox_api.py` — Extended Python API (inherits from scholarinboxcli)
+- `references/cli-reference.md` — Complete CLI command reference
 - `references/json-response-schema.md` — Detailed JSON response field documentation

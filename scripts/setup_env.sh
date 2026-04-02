@@ -1,6 +1,6 @@
 #!/bin/bash
 # Setup script for Scholar Inbox Python API using uv
-# This script creates a local virtual environment and installs httpx (the only required dependency)
+# This script creates a local virtual environment and installs scholarinboxcli
 
 set -e
 
@@ -45,25 +45,31 @@ else
 fi
 echo ""
 
-# Install httpx (required by the Python API)
-echo "Installing httpx..."
-uv pip install --python "$VENV_DIR/bin/python" httpx
-echo -e "${GREEN}✓ httpx installed${NC}"
+# Install scholarinboxcli (the base package)
+echo "Installing scholarinboxcli..."
+uv pip install --python "$VENV_DIR/bin/python" scholarinboxcli
+echo -e "${GREEN}✓ scholarinboxcli installed${NC}"
 echo ""
 
 # Verify installation
 PYTHON_PATH="$VENV_DIR/bin/python"
 if [ -f "$PYTHON_PATH" ]; then
-    echo -e "${GREEN}========================================${NC}"
-    echo -e "${GREEN}Setup complete!${NC}"
-    echo -e "${GREEN}========================================${NC}"
+    # Test import
+    if $PYTHON_PATH -c "from scholar_inbox_api import MyScholarInboxClient; print('OK')" 2>/dev/null; then
+        echo -e "${GREEN}========================================${NC}"
+        echo -e "${GREEN}Setup complete!${NC}"
+        echo -e "${GREEN}========================================${NC}"
+    else
+        echo -e "${YELLOW}Warning: Could not import MyScholarInboxClient${NC}"
+        echo "  (This is normal if you're running from the skill directory)"
+    fi
     echo ""
     echo "Python location:"
     echo "  $PYTHON_PATH"
     echo ""
     echo "To use the Python API:"
     echo "  export PYTHONPATH=\"$SKILL_DIR:\$PYTHONPATH\""
-    echo "  $PYTHON_PATH -c \"from scholar_inbox_api import ScholarInboxClient; print('OK')\""
+    echo "  $PYTHON_PATH -c \"from scholar_inbox_api import MyScholarInboxClient; print('OK')\""
     echo ""
     echo "To run the CLI interface:"
     echo "  $PYTHON_PATH $SKILL_DIR/scholar_inbox_api.py --help"
@@ -72,7 +78,7 @@ if [ -f "$PYTHON_PATH" ]; then
     echo "  1. Get your sha_key from https://www.scholar-inbox.com"
     echo "     (Open F12 → Network → find api/session_info → copy sha_key from response)"
     echo "  2. Set environment variable: export SCHOLAR_INBOX_SHA_KEY=YOUR_KEY"
-    echo "  3. Test: $PYTHON_PATH $SKILL_DIR/scholar_inbox_api.py session"
+    echo "  3. Test: $PYTHON_PATH $SKILL_DIR/scholar_inbox_api.py status"
     echo ""
 else
     echo -e "${YELLOW}⚠️  Installation completed but Python not found at expected path.${NC}"
