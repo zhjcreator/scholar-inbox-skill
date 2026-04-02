@@ -1,6 +1,6 @@
 #!/bin/bash
-# Setup script for scholarinboxcli using uv
-# This script creates a local virtual environment and installs scholarinboxcli
+# Setup script for Scholar Inbox Python API using uv
+# This script creates a local virtual environment and installs httpx (the only required dependency)
 
 set -e
 
@@ -15,7 +15,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 VENV_DIR="$SKILL_DIR/.venv"
 
-echo "Setting up scholarinboxcli environment..."
+echo "Setting up Scholar Inbox Python API environment..."
 echo "Skill directory: $SKILL_DIR"
 echo ""
 
@@ -45,40 +45,36 @@ else
 fi
 echo ""
 
-# Install/upgrade scholarinboxcli
-echo "Installing scholarinboxcli..."
-uv pip install --python "$VENV_DIR/bin/python" --upgrade scholarinboxcli
-echo -e "${GREEN}✓ scholarinboxcli installed${NC}"
+# Install httpx (required by the Python API)
+echo "Installing httpx..."
+uv pip install --python "$VENV_DIR/bin/python" httpx
+echo -e "${GREEN}✓ httpx installed${NC}"
 echo ""
 
-# Determine the correct binary path based on OS
-if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
-    # Windows
-    CLI_PATH="$VENV_DIR/Scripts/scholarinboxcli.exe"
-else
-    # macOS/Linux
-    CLI_PATH="$VENV_DIR/bin/scholarinboxcli"
-fi
-
 # Verify installation
-if [ -f "$CLI_PATH" ]; then
+PYTHON_PATH="$VENV_DIR/bin/python"
+if [ -f "$PYTHON_PATH" ]; then
     echo -e "${GREEN}========================================${NC}"
     echo -e "${GREEN}Setup complete!${NC}"
     echo -e "${GREEN}========================================${NC}"
     echo ""
-    echo "CLI binary location:"
-    echo "  $CLI_PATH"
+    echo "Python location:"
+    echo "  $PYTHON_PATH"
     echo ""
-    echo "Version:"
-    "$CLI_PATH" --version
+    echo "To use the Python API:"
+    echo "  export PYTHONPATH=\"$SKILL_DIR:\$PYTHONPATH\""
+    echo "  $PYTHON_PATH -c \"from scholar_inbox_api import ScholarInboxClient; print('OK')\""
+    echo ""
+    echo "To run the CLI interface:"
+    echo "  $PYTHON_PATH $SKILL_DIR/scholar_inbox_api.py --help"
     echo ""
     echo "Next steps:"
     echo "  1. Get your sha_key from https://www.scholar-inbox.com"
     echo "     (Open F12 → Network → find api/session_info → copy sha_key from response)"
-    echo "  2. Authenticate: $CLI_PATH auth login --url 'https://www.scholar-inbox.com/login?sha_key=YOUR_KEY&date=MM-DD-YYYY'"
-    echo "  3. Start using: $CLI_PATH trending --json"
+    echo "  2. Set environment variable: export SCHOLAR_INBOX_SHA_KEY=YOUR_KEY"
+    echo "  3. Test: $PYTHON_PATH $SKILL_DIR/scholar_inbox_api.py session"
     echo ""
 else
-    echo -e "${YELLOW}⚠️  Installation completed but binary not found at expected path.${NC}"
-    echo "   You can try running: uv run --with scholarinboxcli scholarinboxcli --help"
+    echo -e "${YELLOW}⚠️  Installation completed but Python not found at expected path.${NC}"
+    echo "   You can try: uv run python --version"
 fi
