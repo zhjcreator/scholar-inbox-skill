@@ -47,15 +47,15 @@ echo ""
 
 # Install scholarinboxcli (the base package)
 echo "Installing scholarinboxcli..."
-uv pip install --python "$VENV_DIR/bin/python" scholarinboxcli
+uv pip install --python "$VENV_DIR/bin/python" scholarinboxcli httpx
 echo -e "${GREEN}✓ scholarinboxcli installed${NC}"
 echo ""
 
 # Verify installation
 PYTHON_PATH="$VENV_DIR/bin/python"
 if [ -f "$PYTHON_PATH" ]; then
-    # Test import
-    if $PYTHON_PATH -c "from scholar_inbox_api import MyScholarInboxClient; print('OK')" 2>/dev/null; then
+    # Test import - add SKILL_DIR to PYTHONPATH so scripts/ can be found
+    if PYTHONPATH="$SKILL_DIR:$PYTHONPATH" $PYTHON_PATH -c "from scripts.scholar_inbox_api import MyScholarInboxClient; print('OK')" 2>/dev/null; then
         echo -e "${GREEN}========================================${NC}"
         echo -e "${GREEN}Setup complete!${NC}"
         echo -e "${GREEN}========================================${NC}"
@@ -69,16 +69,16 @@ if [ -f "$PYTHON_PATH" ]; then
     echo ""
     echo "To use the Python API:"
     echo "  export PYTHONPATH=\"$SKILL_DIR:\$PYTHONPATH\""
-    echo "  $PYTHON_PATH -c \"from scholar_inbox_api import MyScholarInboxClient; print('OK')\""
+    echo "  $PYTHON_PATH -c \"from scripts.scholar_inbox_api import MyScholarInboxClient; print('OK')\""
     echo ""
     echo "To run the CLI interface:"
-    echo "  $PYTHON_PATH $SKILL_DIR/scholar_inbox_api.py --help"
+    echo "  PYTHONPATH=\"$SKILL_DIR\" $PYTHON_PATH $SKILL_DIR/scripts/scholar_inbox_api.py --help"
     echo ""
     echo "Next steps:"
     echo "  1. Get your sha_key from https://www.scholar-inbox.com"
     echo "     (Open F12 → Network → find api/session_info → copy sha_key from response)"
     echo "  2. Set environment variable: export SCHOLAR_INBOX_SHA_KEY=YOUR_KEY"
-    echo "  3. Test: $PYTHON_PATH $SKILL_DIR/scholar_inbox_api.py status"
+    echo "  3. Test: PYTHONPATH=\"$SKILL_DIR\" $PYTHON_PATH $SKILL_DIR/scripts/scholar_inbox_api.py status"
     echo ""
 else
     echo -e "${YELLOW}⚠️  Installation completed but Python not found at expected path.${NC}"

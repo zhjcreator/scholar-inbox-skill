@@ -19,7 +19,7 @@ metadata:
 
 # Scholar Inbox Python API
 
-Interact with the Scholar Inbox academic paper platform via the Python API (`scholar_inbox_api.py`).
+Interact with the Scholar Inbox academic paper platform via the Python API (`scripts/scholar_inbox_api.py`).
 This module **inherits from `scholarinboxcli.ScholarInboxClient`** and extends it with additional
 convenience methods and paper rating functionality.
 
@@ -38,15 +38,21 @@ scholarinboxcli.ScholarInboxClient (父类)
 
 ## Prerequisites
 
-1. **Install uv** (if not already installed):
+1. **Python 3.10+** (Important: Python 3.9 with LibreSSL may have TLS compatibility issues)
+
+   - Check version: `python3 --version`
+   - If you see SSL/TLS errors, use Python 3.10+ or the managed Python in WorkBuddy
+   - Managed Python: `/Users/zhj/.workbuddy/binaries/python/versions/3.13.12/bin/python3`
+
+2. **Install uv** (if not already installed):
 
    - macOS/Linux: `brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`
    - Windows: `pip install uv` or `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`
 
-2. **Install scholarinboxcli** (required by the API):
+3. **Install dependencies**:
 
 ```bash
-uv pip install scholarinboxcli
+uv pip install scholarinboxcli httpx
 ```
 
 Or use the setup script:
@@ -54,6 +60,9 @@ Or use the setup script:
 ```bash
 ./scripts/setup_env.sh
 ```
+
+**⚠️ SSL/TLS Note**: If you encounter SSL errors like `TLSV1_ALERT_PROTOCOL_VERSION`, your Python/OpenSSL
+version is too old. Use Python 3.10+ with OpenSSL 1.1.1+ or 3.x.
 
 ## Authentication
 
@@ -75,7 +84,7 @@ Use the full login URL from Scholar Inbox.
 ### Python API Usage
 
 ```python
-from scholar_inbox_api import MyScholarInboxClient
+from scripts.scholar_inbox_api import MyScholarInboxClient
 
 # Method 1: From environment variable (SCHOLAR_INBOX_SHA_KEY)
 client = MyScholarInboxClient.from_env()
@@ -115,7 +124,7 @@ Override the API base URL with `SCHOLAR_INBOX_API_BASE` environment variable.
 All parent class methods are inherited. Use them directly:
 
 ```python
-from scholar_inbox_api import MyScholarInboxClient
+from scripts.scholar_inbox_api import MyScholarInboxClient
 
 client = MyScholarInboxClient.from_env()
 
@@ -338,6 +347,6 @@ python scholar_inbox_api.py rate 4636621 1
 
 ## Reference
 
-- `scholar_inbox_api.py` — Extended Python API (inherits from scholarinboxcli)
+- `scripts/scholar_inbox_api.py` — Extended Python API (inherits from scholarinboxcli)
 - `references/cli-reference.md` — Complete CLI command reference
 - `references/json-response-schema.md` — Detailed JSON response field documentation

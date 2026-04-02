@@ -6,9 +6,15 @@ import os
 import json
 
 # 添加路径
-SKILL_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, SKILL_DIR)
-sys.path.insert(0, "/Users/zhj/WorkBuddy/20260331025726/scholarinboxcli/src")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SKILL_DIR = os.path.dirname(SCRIPT_DIR)
+WORKSPACE_DIR = "/Users/zhj/WorkBuddy/20260331025726"
+
+# PYTHONPATH 需要包含 SKILL_DIR 才能导入 scripts.scholar_inbox_api
+sys.path.insert(0, SKILL_DIR)  # 添加 skill 根目录
+sys.path.insert(0, os.path.join(WORKSPACE_DIR, "scholarinboxcli", "src"))
+
+from scripts.scholar_inbox_api import MyScholarInboxClient
 
 # 设置环境变量（如果需要）
 sha_key = os.environ.get("SCHOLAR_INBOX_SHA_KEY")
@@ -16,8 +22,6 @@ if not sha_key:
     print("⚠️  SCHOLAR_INBOX_SHA_KEY 未设置，部分测试将跳过")
 else:
     print(f"✓ SCHOLAR_INBOX_SHA_KEY 已设置: {sha_key[:10]}...")
-
-from scholar_inbox_api import MyScholarInboxClient
 
 def test_result(name: str, success: bool, details: str = ""):
     status = "✅" if success else "❌"
@@ -53,7 +57,7 @@ def main():
 
     # 1. 测试导入
     try:
-        from scholar_inbox_api import MyScholarInboxClient, PaperRating, RatingError
+        from scripts.scholar_inbox_api import MyScholarInboxClient, PaperRating, RatingError
         test_result("导入模块", True)
     except Exception as e:
         test_result("导入模块", False, str(e))
@@ -165,7 +169,7 @@ def main():
     # 8. 测试 PaperRating 常量
     print("\n--- 数据模型测试 ---")
     try:
-        from scholar_inbox_api import PaperRating
+        from scripts.scholar_inbox_api import PaperRating
         test_result("PaperRating.UPVOTE", PaperRating.UPVOTE == 1, f"值: {PaperRating.UPVOTE}")
         test_result("PaperRating.DOWNVOTE", PaperRating.DOWNVOTE == -1, f"值: {PaperRating.DOWNVOTE}")
         test_result("PaperRating.NEUTRAL", PaperRating.NEUTRAL == 0, f"值: {PaperRating.NEUTRAL}")
