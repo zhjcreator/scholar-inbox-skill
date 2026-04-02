@@ -1,254 +1,154 @@
-# Scholar Inbox CLI Skill
+# Scholar Inbox API Skill
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![OpenClaw](https://img.shields.io/badge/OpenClaw-Skill-blue)](https://clawhub.ai)
-
-An [OpenClaw](https://clawhub.ai) skill for interacting with [Scholar Inbox](https://www.scholar-inbox.com) — a personalized academic paper recommendation platform. Search papers, browse trending research, manage bookmarks and collections, all via command line.
+A WorkBuddy skill for interacting with [Scholar Inbox](https://www.scholar-inbox.com) - an AI-powered academic paper discovery platform.
 
 ## Features
 
-- **Daily Digest** — Get personalized paper recommendations for any date
-- **Trending Papers** — Browse what's hot across categories (ML, NLP, CV, etc.)
-- **Keyword Search** — Find papers with highlighted matching terms
-- **Semantic Search** — Natural language queries with similarity scores
-- **Bookmarks & Collections** — Organize papers into custom collections
-- **Conference Papers** — Explore proceedings from major ML/AI conferences
-- **JSON Output** — Structured data for AI agent workflows
+- **Paper Discovery**: Daily digest, trending papers, keyword search, semantic search
+- **Ratings**: Like/dislike papers, rate papers
+- **Collections**: Create, manage, and organize paper collections
+- **Bookmarks**: Save papers for later reading
+- **Conferences**: Browse conference proceedings
+- **Full API**: Both Python API and CLI interface
 
-## Requirements
+## Architecture
 
-- [uv](https://github.com/astral-sh/uv) — Python package manager
-- `SCHOLAR_INBOX_SHA_KEY` environment variable (see Authentication section)
+This skill inherits from `scholarinboxcli.ScholarInboxClient` and extends it with additional functionality:
+
+```
+scholarinboxcli.ScholarInboxClient (Parent)
+    │
+    └── MyScholarInboxClient (Extended)
+            ├── Inherited: search, get_digest, collections, bookmarks, etc.
+            ├── login_with_sha_key() - SHA key authentication
+            ├── rate_paper() - Rate papers
+            ├── like_paper() / dislike_paper() - Vote on papers
+            └── More convenience methods...
+```
 
 ## Installation
 
-### 1. Install uv
+### Prerequisites
+
+- Python 3.10+ (with OpenSSL 1.1.1+ or 3.x)
+- uv package manager
 
 ```bash
-# macOS/Linux
-brew install uv
+# Install uv (if not installed)
+brew install uv  # macOS
+# or: curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Or via curl
-curl -LsSf https://astral.sh/uv/install.sh | sh
+# Install dependencies
+uv pip install scholarinboxcli httpx
 
-# Windows
-pip install uv
-# Or
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+# Or use the setup script
+./scripts/setup_env.sh
 ```
 
-### 2. Install the CLI
+### Authentication
 
+Get your `sha_key` from https://www.scholar-inbox.com:
+1. Log in to your account
+2. Open Developer Tools (F12)
+3. Go to Network tab
+4. Find request to `api/session_info`
+5. Copy the `sha_key` value
+
+Set the environment variable:
 ```bash
-# Option 1: Install globally with uv
-uv tool install scholarinboxcli
-
-# Option 2: Use the setup script (creates local venv)
-bash scripts/setup_env.sh
-```
-
-### 3. Configure OpenClaw (if using OpenClaw)
-
-Add to `~/.openclaw/openclaw.json`:
-
-```json
-{
-  "skills": {
-    "entries": {
-      "scholar-inbox-cli": {
-        "enabled": true,
-        "env": {
-          "SCHOLAR_INBOX_SHA_KEY": "your-sha-key-here"
-        }
-      }
-    }
-  }
-}
-```
-
-The skill declares `metadata.openclaw.requires.env: ["SCHOLAR_INBOX_SHA_KEY"]` so OpenClaw will:
-- Check that this environment variable is set before loading the skill
-- Inject it into the process environment when the skill is invoked
-
-## Authentication
-
-Scholar Inbox requires authentication via a Magic Link using a `sha_key`.
-
-### Getting your sha_key
-
-1. Visit https://www.scholar-inbox.com and **log in** to your account
-2. Open browser **Developer Tools** (press `F12` or `Cmd+Option+I` on Mac)
-3. Go to the **Network** tab
-4. Refresh the page if needed
-5. Look for a request to `https://api.scholar-inbox.com/api/session_info`
-6. Click on it → select the **Response** tab
-7. Find the `sha_key` field (a long hexadecimal string like `a1b2c3d4e5f6...`)
-8. **Copy this value** — this is your authentication key
-
-![Where to find sha_key](https://i.imgur.com/placeholder.png)
-
-> **Security Note:** The `sha_key` is sensitive — treat it like a password. Don't commit it to git or share it publicly.
-
-### Login
-
-Once you have the `SCHOLAR_INBOX_SHA_KEY` environment variable set:
-
-```bash
-# Using environment variable (recommended)
-scholarinboxcli auth login --url "https://www.scholar-inbox.com/login?sha_key=$SCHOLAR_INBOX_SHA_KEY&date=$(date +%m-%d-%Y)"
-
-# Or with explicit key
-scholarinboxcli auth login --url "https://www.scholar-inbox.com/login?sha_key=YOUR_KEY&date=04-01-2026"
-```
-
-### Verify authentication
-
-```bash
-scholarinboxcli auth status
-```
-
-Expected output:
-```json
-{
-  "is_logged_in": true,
-  "name": "Your Name",
-  "user_id": 12345,
-  "sha_key": "a1b2c3d4...",
-  "onboarding_status": "finished_fast_track"
-}
+export SCHOLAR_INBOX_SHA_KEY="your-sha-key"
 ```
 
 ## Usage
 
-### Always use `--json` for AI workflows
+### Python API
 
-```bash
-# Daily digest
-scholarinboxcli digest --date 04-01-2026 --json
+```python
+from scripts.scholar_inbox_api import MyScholarInboxClient
 
-# Trending papers (last 7 days, all categories)
-scholarinboxcli trending --category ALL --days 7 --json
+# Initialize with environment variable
+client = MyScholarInboxClient.from_env()
 
-# Keyword search
-scholarinboxcli search "transformer architecture" --limit 5 --json
+# Or with explicit sha_key
+client = MyScholarInboxClient.from_sha_key("your-sha-key")
+
+# Check authentication
+if client.is_authenticated:
+    user = client.get_current_user()
+    print(f"Logged in as: {user}")
+
+# Search papers
+results = client.search("machine learning", limit=5)
+papers = results.get("digest_df", [])
+
+# Get daily digest
+digest = client.get_digest()
+
+# Get trending papers
+trending = client.get_trending(category="Machine Learning", days=7)
 
 # Semantic search
-scholarinboxcli semantic "how to improve reasoning in LLMs" --limit 5 --json
+results = client.semantic_search("how to improve LLM reasoning", limit=5)
 
-# List your collections
-scholarinboxcli collection list --json
+# Rate papers
+client.like_paper("12345")      # Like
+client.dislike_paper("12345")   # Dislike
+client.rate_paper("12345", 1)   # Explicit rating
 
-# List bookmarks
-scholarinboxcli bookmark list --json
-
-# Explore conference papers
-scholarinboxcli conference list --json
-scholarinboxcli conference explore "ICLR 2025" --json
+# Collections
+collections = client.collections_list()
+client.collection_create("My ML Papers")
 ```
 
-### Categories for Trending
+### CLI Interface
 
-| Category | Description |
-|----------|-------------|
-| `ALL` | All categories |
-| `Machine Learning` | ML, deep learning |
-| `Language` | NLP, computational linguistics |
-| `Computer Vision and Graphics` | CV, computer graphics |
-| `Artificial Intelligence` | AI, agents, planning |
-| `Robotics` | Robotics, manipulation |
-| `Sound and Audio Processing` | Audio, speech, music |
-| `Interdisciplinary` | Cross-domain topics |
+```bash
+# Check status
+python scripts/scholar_inbox_api.py status
 
-## Response Format
+# Get daily digest
+python scripts/scholar_inbox_api.py digest
 
-All commands with `--json` return structured data. Key paper fields:
+# Search papers
+python scripts/scholar_inbox_api.py search "transformers" --limit 10
 
-| Field | Description |
-|-------|-------------|
-| `title` | Paper title |
-| `authors` | List of authors |
-| `publication_date` | Date (YYYY-MM-DD) |
-| `display_venue` | Venue name (e.g., "NeurIPS 2022") |
-| `abstract` | Full abstract |
-| `url` | PDF link |
-| `arxiv_id` | ArXiv identifier |
-| `citations` | Citation count |
-| `total_likes` / `total_read` | Platform engagement |
-| `similarity` | Semantic search score (0-100) |
+# Semantic search
+python scripts/scholar_inbox_api.py search "reasoning" --semantic
 
-See `references/json-response-schema.md` for complete schema documentation.
+# Rate a paper
+python scripts/scholar_inbox_api.py rate 4636621 1  # paper_id, rating
+```
 
-## Project Structure
+## Running Tests
+
+```bash
+# Using Python 3.13 (recommended for TLS compatibility)
+PYTHON=/Users/zhj/.workbuddy/binaries/python/versions/3.13.12/bin/python3
+PYTHONPATH="/path/to/scholarinboxcli/src:$PYTHONPATH" \
+  $PYTHON scripts/test_skill.py
+```
+
+## SSL/TLS Note
+
+If you encounter SSL errors like `TLSV1_ALERT_PROTOCOL_VERSION`, your Python/OpenSSL version is too old. Use Python 3.10+ with OpenSSL 1.1.1+ or 3.x.
+
+## Directory Structure
 
 ```
-scholar-inbox-skill/
-├── SKILL.md                          # Skill definition & usage guide
-├── README.md                         # This file
-├── LICENSE                           # MIT License
-├── .gitignore                        # Git ignore rules
+scholar-inbox/
+├── scripts/
+│   ├── __init__.py
+│   ├── scholar_inbox_api.py   # Main API
+│   ├── test_skill.py          # Tests
+│   └── setup_env.sh           # Setup script
 ├── references/
-│   ├── cli-reference.md              # Complete CLI command reference
-│   └── json-response-schema.md       # API response field documentation
-└── scripts/
-    └── setup_env.sh                  # Environment setup script
+│   ├── cli-reference.md      # CLI docs
+│   └── json-response-schema.md # JSON schema docs
+├── assets/                    # Assets (empty)
+├── SKILL.md                   # Skill definition
+└── README.md                  # This file
 ```
-
-## CLI Reference
-
-| Command | Description |
-|---------|-------------|
-| `auth login --url URL` | Authenticate with Magic Link |
-| `auth status` | Check authentication state |
-| `auth logout` | Log out |
-| `digest [--date DATE]` | Daily paper recommendations |
-| `trending --category CAT --days N` | Trending papers |
-| `search QUERY [--limit N]` | Keyword search |
-| `semantic QUERY [--limit N]` | Semantic/natural language search |
-| `bookmark list` | List bookmarks |
-| `collection list` | List collections |
-| `collection create NAME` | Create collection |
-| `collection add NAME ID...` | Add papers to collection |
-| `conference list` | List available conferences |
-| `conference explore NAME` | Explore conference papers |
-
-See `references/cli-reference.md` for all commands and options.
-
-## OpenClaw Integration
-
-This skill is designed for [OpenClaw](https://clawhub.ai) with the following metadata:
-
-```yaml
-metadata:
-  openclaw:
-    requires:
-      bins: ["uv"]
-      env: ["SCHOLAR_INBOX_SHA_KEY"]
-    primaryEnv: "SCHOLAR_INBOX_SHA_KEY"
-```
-
-This ensures:
-- The skill only loads if `uv` is installed
-- The skill only loads if `SCHOLAR_INBOX_SHA_KEY` is configured
-- The environment variable is automatically injected when the skill runs
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| `uv: command not found` | Install uv first (see Installation) |
-| `SCHOLAR_INBOX_SHA_KEY not set` | Configure in `~/.openclaw/openclaw.json` or export in shell |
-| `scholarinboxcli: command not found` | Use full path: `.venv/bin/scholarinboxcli` or add uv tool bin to PATH |
-| Authentication fails | Get a fresh sha_key from browser (they may expire) |
-| Empty results | Check auth status first: `scholarinboxcli auth status` |
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) file.
-
-## Links
-
-- [Scholar Inbox](https://www.scholar-inbox.com)
-- [scholarinboxcli on PyPI](https://pypi.org/project/scholarinboxcli/)
-- [OpenClaw/ClawHub](https://clawhub.ai)
-- [OpenClaw Documentation](https://docs.openclaw.ai)
-- [Original CLI Repository](https://github.com/mrshu/scholarinboxcli)
+MIT

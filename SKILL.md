@@ -282,19 +282,19 @@ Rate a paper (like/dislike) using the extended API:
 
 ```python
 # Like a paper (rating: 1)
-result = client.like_paper("4636621")
+result = client.like_paper("4637041")
 
 # Dislike a paper (rating: -1)
-result = client.dislike_paper("4636621")
+result = client.dislike_paper("4637041")
 
 # Or use the generic rate method
-result = client.rate_paper("4636621", rating=1)  # 1=upvote, -1=downvote, 0=neutral
+result = client.rate_paper("4637041", rating=1)  # 1=upvote, -1=downvote, 0=neutral
 
 # Remove rating
-result = client.remove_rating("4636621")
+result = client.remove_rating("4637041")
 ```
 
-**Tip**: You can find paper IDs from other commands (e.g., `trending`, `search`, `digest`) in the `_id` field of each paper object.
+**Tip**: You can find paper IDs from other commands (e.g., `trending`, `search`, `digest`) in the `paper_id` field of each paper object.
 
 ### Quick Search Convenience Method
 
@@ -313,28 +313,50 @@ The API also provides a CLI interface for quick commands:
 
 ```bash
 # Login
-python scholar_inbox_api.py login YOUR_SHA_KEY
+python scripts/scholar_inbox_api.py login YOUR_SHA_KEY
 
 # Get session info
-python scholar_inbox_api.py status
+python scripts/scholar_inbox_api.py status
 
 # Get today's digest
-python scholar_inbox_api.py digest
+python scripts/scholar_inbox_api.py digest
 
 # Get digest for specific date
-python scholar_inbox_api.py digest --date 04-01-2026
+python scripts/scholar_inbox_api.py digest --date 04-01-2026
 
 # Get trending papers
-python scholar_inbox_api.py trending --category ALL --days 7
+python scripts/scholar_inbox_api.py trending --category ALL --days 7
 
 # Search papers
-python scholar_inbox_api.py search "transformers" --limit 10
+python scripts/scholar_inbox_api.py search "transformers" --limit 10
 
 # Semantic search
-python scholar_inbox_api.py search "reasoning in LLMs" --semantic
+python scripts/scholar_inbox_api.py search "reasoning in LLMs" --semantic
 
 # Rate a paper
-python scholar_inbox_api.py rate 4636621 1
+python scripts/scholar_inbox_api.py rate 4637041 1
+```
+
+## API Response Format Notes
+
+Some APIs return wrapped response objects. Handle them accordingly:
+
+```python
+# collections_list() returns {"success": true, "collections": [...]}
+data = client.collections_list()
+collections = data.get("collections", [])
+
+# bookmarks() returns {"success": true, "collections": [...]}
+data = client.bookmarks()
+bookmarks = data.get("collections", [])
+
+# conference_list() returns {"success": true, "conferences": [...]}
+data = client.conference_list()
+conferences = data.get("conferences", [])
+
+# For papers, always access digest_df
+results = client.search("LLM")
+papers = results.get("digest_df", [])
 ```
 
 ## Troubleshooting

@@ -96,13 +96,8 @@ class MyScholarInboxClient(_BaseClient):
     - 上下文管理器支持
     """
 
-    # 评分 API 端点（Scholar Inbox 可能使用的端点）
-    RATING_ENDPOINTS = [
-        "/api/rate_paper/",
-        "/api/make_rating/",
-        "/api/paper/rate/",
-        "/api/rating/",
-    ]
+    # 评分 API 端点（经测试验证可用的端点）
+    RATING_ENDPOINT = "/api/make_rating/"
 
     def __init__(
         self,
@@ -249,19 +244,10 @@ class MyScholarInboxClient(_BaseClient):
             "rating": rating,
         }
 
-        # 尝试多个可能的端点
-        for endpoint in self.RATING_ENDPOINTS:
-            try:
-                resp = self._request("POST", endpoint, json=payload)
-                return resp
-            except _ApiError:
-                try:
-                    resp = self._request("POST", endpoint, data=payload)
-                    return resp
-                except _ApiError:
-                    continue
-
-        raise RatingError("Failed to rate paper, no valid endpoint found")
+        try:
+            return self._request("POST", self.RATING_ENDPOINT, json=payload)
+        except _ApiError as e:
+            raise RatingError(f"Failed to rate paper: {e}") from e
 
     def like_paper(self, paper_id: str) -> dict[str, Any]:
         """
