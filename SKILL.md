@@ -9,7 +9,7 @@ metadata:
   openclaw:
     requires:
       bins: ["uv", "scholarinboxcli"]
-      env: []
+      env: ["SCHOLAR_INBOX_SHA_KEY"]
     primaryEnv: ""
 ---
 
@@ -30,13 +30,21 @@ uv tool install git+https://github.com/zhjcreator/scholarinboxcli.git
 ## Authentication
 
 ```bash
-# Get login URL from Scholar Inbox email, or construct:
-# https://www.scholar-inbox.com/login?sha_key=<KEY>&date=MM-DD-YYYY
+# Method 1: Set env var — login without any flag (fork only)
+export SCHOLAR_INBOX_SHA_KEY="YOUR_SHA_KEY"
+scholarinboxcli auth login
+
+# Method 2: Pass sha_key via flag (fork only)
+scholarinboxcli auth login --sha-key "YOUR_SHA_KEY"
+
+# Method 3: Full magic-link URL (original CLI)
 scholarinboxcli auth login --url "https://www.scholar-inbox.com/login?sha_key=...&date=MM-DD-YYYY"
 
 scholarinboxcli auth status      # check session
 scholarinboxcli auth logout      # clear session
 ```
+
+> **Get `sha_key`**: Log in at https://www.scholar-inbox.com, open DevTools (F12) → Network → find `api/session_info` request → copy `sha_key` from response.
 
 ## Daily Digest
 

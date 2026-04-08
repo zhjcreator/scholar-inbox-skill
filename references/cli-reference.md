@@ -5,7 +5,8 @@
 ### Authentication
 
 ```bash
-scholarinboxcli auth login --url "https://..."
+scholarinboxcli auth login [--url "https://..."] [--sha-key "KEY"]
+# Falls back to SCHOLAR_INBOX_SHA_KEY env var if no flag provided (fork only)
 scholarinboxcli auth status
 scholarinboxcli auth logout
 ```
