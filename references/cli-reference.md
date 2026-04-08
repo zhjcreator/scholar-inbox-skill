@@ -10,9 +10,6 @@ This skill uses a fork at `https://github.com/zhjcreator/scholarinboxcli` which 
 ## Authentication
 
 ```bash
-# Login with sha_key
-scholarinboxcli auth login --sha-key YOUR_SHA_KEY
-
 # Login with magic link URL
 scholarinboxcli auth login --url "https://www.scholar-inbox.com/login?sha_key=...&date=MM-DD-YYYY"
 

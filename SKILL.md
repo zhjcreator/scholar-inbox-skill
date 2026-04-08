@@ -39,20 +39,13 @@ uv tool install git+https://github.com/zhjcreator/scholarinboxcli.git
 
 ## Authentication
 
-### Login with sha_key (Recommended)
+### Login with magic link URL
 
-Get your sha_key from https://www.scholar-inbox.com:
-1. Log in to your account
-2. Open browser Developer Tools (F12 or Cmd+Option+I)
-3. Go to Network tab
-4. Find any request to `api/session_info`
-5. Copy the `sha_key` value from the response
+Get your login URL from Scholar Inbox:
+1. Log in to your account on https://www.scholar-inbox.com
+2. Find the magic link URL in your email, or extract the `sha_key` from the Network tab (F12 → Network → `api/session_info`) and construct: `https://www.scholar-inbox.com/login?sha_key=YOUR_KEY&date=MM-DD-YYYY`
 
 ```bash
-# Login using sha_key directly
-scholarinboxcli auth login --sha-key YOUR_SHA_KEY
-
-# Or login using the full magic link URL
 scholarinboxcli auth login --url "https://www.scholar-inbox.com/login?sha_key=...&date=MM-DD-YYYY"
 ```
 
