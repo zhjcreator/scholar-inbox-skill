@@ -1,152 +1,102 @@
-# Scholar Inbox API Skill
+# Scholar Inbox Skill
 
-A WorkBuddy skill for interacting with [Scholar Inbox](https://www.scholar-inbox.com) - an AI-powered academic paper discovery platform.
+A WorkBuddy skill for interacting with [Scholar Inbox](https://www.scholar-inbox.com) — an AI-powered academic paper discovery platform.
 
 ## Features
 
 - **Paper Discovery**: Daily digest, trending papers, keyword search, semantic search
-- **Ratings**: Like/dislike papers, rate papers
+- **Ratings**: Rate papers (upvote / downvote / remove) — fork only
 - **Collections**: Create, manage, and organize paper collections
 - **Bookmarks**: Save papers for later reading
 - **Conferences**: Browse conference proceedings
-- **Full API**: Both Python API and CLI interface
+- **CLI Interface**: Full command-line access via `scholarinboxcli`
 
-## Architecture
+## Requirements
 
-This skill inherits from `scholarinboxcli.ScholarInboxClient` and extends it with additional functionality:
-
-```
-scholarinboxcli.ScholarInboxClient (Parent)
-    │
-    └── MyScholarInboxClient (Extended)
-            ├── Inherited: search, get_digest, collections, bookmarks, etc.
-            ├── login_with_sha_key() - SHA key authentication
-            ├── rate_paper() - Rate papers
-            ├── like_paper() / dislike_paper() - Vote on papers
-            └── More convenience methods...
-```
+- Python 3.10+ (with OpenSSL 1.1.1+ or 3.x)
+- [uv](https://astral.sh/uv) package manager
 
 ## Installation
 
-### Prerequisites
-
-- Python 3.10+ (with OpenSSL 1.1.1+ or 3.x)
-- uv package manager
-
 ```bash
-# Install uv (if not installed)
-brew install uv  # macOS
+# Install uv (if needed)
+brew install uv   # macOS
 # or: curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install dependencies
-uv pip install scholarinboxcli httpx
-
-# Or use the setup script
+# Install from fork (includes rate command)
 ./scripts/setup_env.sh
+
+# Or install globally
+uv tool install git+https://github.com/zhjcreator/scholarinboxcli.git
 ```
 
-### Authentication
+## Authentication
 
-Get your `sha_key` from https://www.scholar-inbox.com:
-1. Log in to your account
-2. Open Developer Tools (F12)
-3. Go to Network tab
-4. Find request to `api/session_info`
-5. Copy the `sha_key` value
-
-Set the environment variable:
 ```bash
-export SCHOLAR_INBOX_SHA_KEY="your-sha-key"
+# Get login URL from Scholar Inbox email, or construct manually:
+# https://www.scholar-inbox.com/login?sha_key=<KEY>&date=MM-DD-YYYY
+scholarinboxcli auth login --url "https://www.scholar-inbox.com/login?sha_key=...&date=MM-DD-YYYY"
+
+scholarinboxcli auth status      # check session
+scholarinboxcli auth logout      # clear session
 ```
 
 ## Usage
 
-### Python API
+```bash
+# Daily digest
+scholarinboxcli digest --json
 
-```python
-from scripts.scholar_inbox_api import MyScholarInboxClient
+# Trending papers
+scholarinboxcli trending --category "Machine Learning" --days 7
 
-# Initialize with environment variable
-client = MyScholarInboxClient.from_env()
-
-# Or with explicit sha_key
-client = MyScholarInboxClient.from_sha_key("your-sha-key")
-
-# Check authentication
-if client.is_authenticated:
-    user = client.get_current_user()
-    print(f"Logged in as: {user}")
-
-# Search papers
-results = client.search("machine learning", limit=5)
-papers = results.get("digest_df", [])
-
-# Get daily digest
-digest = client.get_digest()
-
-# Get trending papers
-trending = client.get_trending(category="Machine Learning", days=7)
+# Keyword search
+scholarinboxcli search "transformers" --limit 10 --json
 
 # Semantic search
-results = client.semantic_search("how to improve LLM reasoning", limit=5)
+scholarinboxcli semantic "graph neural networks" --limit 5 --json
 
-# Rate papers
-client.like_paper("12345")      # Like
-client.dislike_paper("12345")   # Dislike
-client.rate_paper("12345", 1)   # Explicit rating
+# Rate papers (fork only)
+scholarinboxcli rate PAPER_ID 1    # upvote
+scholarinboxcli rate PAPER_ID -1   # downvote
+scholarinboxcli rate PAPER_ID 0    # remove rating
+
+# Bookmarks
+scholarinboxcli bookmark list --json
+scholarinboxcli bookmark add PAPER_ID
 
 # Collections
-collections = client.collections_list()
-client.collection_create("My ML Papers")
+scholarinboxcli collection list --json
+scholarinboxcli collection create "My Papers"
+scholarinboxcli collection papers "My Papers" --json
+
+# Conferences
+scholarinboxcli conference list --json
+
+# Interactions
+scholarinboxcli interactions --json
 ```
 
-### CLI Interface
+## Verify Installation
 
 ```bash
-# Check status
-python scripts/scholar_inbox_api.py status
-
-# Get daily digest
-python scripts/scholar_inbox_api.py digest
-
-# Search papers
-python scripts/scholar_inbox_api.py search "transformers" --limit 10
-
-# Semantic search
-python scripts/scholar_inbox_api.py search "reasoning" --semantic
-
-# Rate a paper
-python scripts/scholar_inbox_api.py rate 4636621 1  # paper_id, rating
+./scripts/test_skill.sh
 ```
-
-## Running Tests
-
-```bash
-# Using Python 3.13 (recommended for TLS compatibility)
-PYTHON=/Users/zhj/.workbuddy/binaries/python/versions/3.13.12/bin/python3
-PYTHONPATH="/path/to/scholarinboxcli/src:$PYTHONPATH" \
-  $PYTHON scripts/test_skill.py
-```
-
-## SSL/TLS Note
-
-If you encounter SSL errors like `TLSV1_ALERT_PROTOCOL_VERSION`, your Python/OpenSSL version is too old. Use Python 3.10+ with OpenSSL 1.1.1+ or 3.x.
 
 ## Directory Structure
 
 ```
-scholar-inbox/
+scholar-inbox-skill/
 ├── scripts/
-│   ├── __init__.py
-│   ├── scholar_inbox_api.py   # Main API
-│   ├── test_skill.py          # Tests
-│   └── setup_env.sh           # Setup script
+│   ├── setup_env.sh       # Install scholarinboxcli from fork
+│   └── test_skill.sh      # Verify installation
 ├── references/
-│   ├── cli-reference.md      # CLI docs
-│   └── json-response-schema.md # JSON schema docs
-├── assets/                    # Assets (empty)
-├── SKILL.md                   # Skill definition
-└── README.md                  # This file
+│   ├── cli-reference.md           # CLI command syntax
+│   └── json-response-schema.md    # JSON response fields
+├── assets/                   # Assets
+├── SKILL.md                  # Skill definition (for WorkBuddy)
+├── README.md / README_zh.md # This file
+└── LICENSE                  # MIT
 ```
 
 ## License
