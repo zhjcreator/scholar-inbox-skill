@@ -1,21 +1,19 @@
 #!/bin/bash
-# Setup script for Scholar Inbox Python API using uv
-# This script creates a local virtual environment and installs scholarinboxcli
+# Setup script for Scholar Inbox Skill
+# Installs scholarinboxcli from the fork repo (zhjcreator/scholarinboxcli)
 
 set -e
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 VENV_DIR="$SKILL_DIR/.venv"
 
-echo "Setting up Scholar Inbox Python API environment..."
+echo "Setting up Scholar Inbox Skill environment..."
 echo "Skill directory: $SKILL_DIR"
 echo ""
 
@@ -45,42 +43,33 @@ else
 fi
 echo ""
 
-# Install scholarinboxcli (the base package)
-echo "Installing scholarinboxcli..."
-uv pip install --python "$VENV_DIR/bin/python" scholarinboxcli httpx
+# Install scholarinboxcli from fork repo (includes rate + sha-key login features)
+FORK_URL="git+https://github.com/zhjcreator/scholarinboxcli.git"
+echo "Installing scholarinboxcli from fork: $FORK_URL"
+uv pip install --python "$VENV_DIR/bin/python" "$FORK_URL"
 echo -e "${GREEN}✓ scholarinboxcli installed${NC}"
 echo ""
 
 # Verify installation
 PYTHON_PATH="$VENV_DIR/bin/python"
-if [ -f "$PYTHON_PATH" ]; then
-    # Test import - add SKILL_DIR to PYTHONPATH so scripts/ can be found
-    if PYTHONPATH="$SKILL_DIR:$PYTHONPATH" $PYTHON_PATH -c "from scripts.scholar_inbox_api import MyScholarInboxClient; print('OK')" 2>/dev/null; then
-        echo -e "${GREEN}========================================${NC}"
-        echo -e "${GREEN}Setup complete!${NC}"
-        echo -e "${GREEN}========================================${NC}"
-    else
-        echo -e "${YELLOW}Warning: Could not import MyScholarInboxClient${NC}"
-        echo "  (This is normal if you're running from the skill directory)"
-    fi
+CLI_PATH="$VENV_DIR/bin/scholarinboxcli"
+
+if [ -f "$CLI_PATH" ]; then
+    echo -e "${GREEN}========================================${NC}"
+    echo -e "${GREEN}Setup complete!${NC}"
+    echo -e "${GREEN}========================================${NC}"
     echo ""
-    echo "Python location:"
-    echo "  $PYTHON_PATH"
-    echo ""
-    echo "To use the Python API:"
-    echo "  export PYTHONPATH=\"$SKILL_DIR:\$PYTHONPATH\""
-    echo "  $PYTHON_PATH -c \"from scripts.scholar_inbox_api import MyScholarInboxClient; print('OK')\""
-    echo ""
-    echo "To run the CLI interface:"
-    echo "  PYTHONPATH=\"$SKILL_DIR\" $PYTHON_PATH $SKILL_DIR/scripts/scholar_inbox_api.py --help"
+    echo "CLI location: $CLI_PATH"
     echo ""
     echo "Next steps:"
     echo "  1. Get your sha_key from https://www.scholar-inbox.com"
     echo "     (Open F12 → Network → find api/session_info → copy sha_key from response)"
-    echo "  2. Set environment variable: export SCHOLAR_INBOX_SHA_KEY=YOUR_KEY"
-    echo "  3. Test: PYTHONPATH=\"$SKILL_DIR\" $PYTHON_PATH $SKILL_DIR/scripts/scholar_inbox_api.py status"
+    echo "  2. Login:"
+    echo "     $CLI_PATH auth login --sha-key YOUR_SHA_KEY"
+    echo "  3. Test:"
+    echo "     $CLI_PATH papers digest"
     echo ""
 else
-    echo -e "${YELLOW}⚠️  Installation completed but Python not found at expected path.${NC}"
-    echo "   You can try: uv run python --version"
+    echo -e "${YELLOW}⚠️  Installation completed but CLI not found at expected path.${NC}"
+    echo "   Try: uv run scholarinboxcli --help"
 fi

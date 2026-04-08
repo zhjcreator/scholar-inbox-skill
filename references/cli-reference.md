@@ -1,224 +1,174 @@
-# Scholar Inbox API — Complete Reference
+# Scholar Inbox CLI — Complete Reference
 
-> This skill includes a Python API (`scholar_inbox_api.py`) for Scholar Inbox.
-> A CLI interface is also provided for quick commands.
-
-## Python API
-
-### Installation
-
-```bash
-uv pip install httpx
-```
-
-### Basic Usage
-
-```python
-from scholar_inbox_api import ScholarInboxClient
-
-# Create client (reads SCHOLAR_INBOX_SHA_KEY from environment)
-client = ScholarInboxClient.from_env()
-
-# Or with explicit sha_key
-client = ScholarInboxClient(sha_key="your-sha-key")
-
-# Login and verify
-client.login_with_sha_key("your-sha-key")
-session = client.session_info()
-```
-
-### ScholarInboxClient Methods
-
-#### Authentication
-
-| Method | Description |
-|--------|-------------|
-| `login_with_sha_key(sha_key)` | Login with sha_key |
-| `session_info()` | Get session info |
-| `check_auth()` | Check if authenticated |
-
-#### Paper Discovery
-
-| Method | Description |
-|--------|-------------|
-| `get_digest(date=None)` | Get daily digest |
-| `get_trending(category, days)` | Get trending papers |
-| `search(query, limit)` | Keyword search |
-| `semantic_search(query, limit)` | Semantic search |
-| `get_interactions(type=None)` | Get interaction history |
-
-#### Rating
-
-| Method | Description |
-|--------|-------------|
-| `make_rating(paper_id, rating)` | Rate paper (1=like, 0=dislike) |
-| `like_paper(paper_id)` | Like a paper |
-| `dislike_paper(paper_id)` | Dislike a paper |
-
-#### Bookmarks
-
-| Method | Description |
-|--------|-------------|
-| `get_bookmarks()` | List bookmarks |
-| `add_bookmark(paper_id)` | Add bookmark |
-| `remove_bookmark(paper_id)` | Remove bookmark |
-
-#### Collections
-
-| Method | Description |
-|--------|-------------|
-| `get_collections()` | List all collections |
-| `get_collection_papers(name)` | Get papers in collection |
-| `create_collection(name)` | Create collection |
-| `rename_collection(old, new)` | Rename collection |
-| `delete_collection(name)` | Delete collection |
-| `add_to_collection(name, paper_ids)` | Add papers |
-| `remove_from_collection(name, paper_ids)` | Remove papers |
-| `get_similar_papers(name, sort)` | Get similar papers |
-
-#### Conferences
-
-| Method | Description |
-|--------|-------------|
-| `get_conferences()` | List conferences |
-| `explore_conference(name)` | Explore conference papers |
+`scholarinboxcli` is the official CLI for Scholar Inbox.
+This skill uses a fork at `https://github.com/zhjcreator/scholarinboxcli` which adds:
+- `auth login --sha-key` — login directly with a sha_key (no full URL needed)
+- `rate PAPER_ID RATING` — upvote / downvote / remove rating for a paper
 
 ---
 
-## CLI Interface
-
-The API also provides a CLI interface:
-
-```bash
-python scholar_inbox_api.py <command> [options]
-```
-
-### Authentication Commands
+## Authentication
 
 ```bash
 # Login with sha_key
-python scholar_inbox_api.py login YOUR_SHA_KEY
+scholarinboxcli auth login --sha-key YOUR_SHA_KEY
 
-# Get session info
-python scholar_inbox_api.py session
-```
+# Login with magic link URL
+scholarinboxcli auth login --url "https://www.scholar-inbox.com/login?sha_key=...&date=MM-DD-YYYY"
 
-### Discovery Commands
+# Check login status
+scholarinboxcli auth status
 
-```bash
-# Get trending papers
-python scholar_inbox_api.py trending --category ALL --days 7
-
-# Search papers
-python scholar_inbox_api.py search "transformers" --limit 10
-
-# Semantic search
-python scholar_inbox_api.py search "reasoning in LLMs" --semantic
-```
-
-### Rating Commands
-
-```bash
-# Rate a paper (1=like, 0=dislike)
-python scholar_inbox_api.py rate PAPER_ID RATING
-
-# Example: like paper 4636621
-python scholar_inbox_api.py rate 4636621 1
-
-# Example: dislike paper 4636621
-python scholar_inbox_api.py rate 4636621 0
-```
-
-### Bookmark Commands
-
-```bash
-# List bookmarks
-python scholar_inbox_api.py bookmarks
-```
-
-### Collection Commands
-
-```bash
-# List collections
-python scholar_inbox_api.py collections
-
-# Get papers in a collection
-python scholar_inbox_api.py collections --papers "Collection Name"
+# Logout
+scholarinboxcli auth logout
 ```
 
 ---
 
-## API Reference
+## Paper Discovery
 
-### Endpoint: make_rating
+### Digest
 
-Rate a paper (like/dislike).
-
-```
-POST https://api.scholar-inbox.com/api/make_rating/
+```bash
+scholarinboxcli digest [--date MM-DD-YYYY] [--json] [--no-retry]
 ```
 
-**Headers**:
-
-| Header | Required | Description |
-|--------|----------|-------------|
-| `Content-Type` | Yes | Must be `application/json` |
-| `X-sha-key` | Yes | Your `SCHOLAR_INBOX_SHA_KEY` |
-
-**Body** (JSON):
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `rating` | integer | Yes | `1` = like, `0` = dislike |
-| `id` | string | Yes | Paper ID (from `_id` field) |
-
-**Example**:
-
-```python
-# Using Python API
-client.make_rating(paper_id="4636621", rating=1)
-
-# Using curl
-curl -X POST "https://api.scholar-inbox.com/api/make_rating/" \
-  -H "Content-Type: application/json" \
-  -H "X-sha-key: $SCHOLAR_INBOX_SHA_KEY" \
-  -d '{"rating": 1, "id": "4636621"}'
+Examples:
+```bash
+scholarinboxcli digest --json
+scholarinboxcli digest --date 04-01-2026 --json
 ```
 
-### Finding Paper IDs
+### Trending
 
-Paper IDs can be found in the `_id` field of paper objects:
+```bash
+scholarinboxcli trending [--category CATEGORY] [--days N] [--sort FIELD] [--asc] [--json] [--no-retry]
+```
 
-```python
-# Get trending papers and extract IDs
-results = client.get_trending(category="ALL", days=7)
-papers = results.get("digest_df", [])
-for paper in papers:
-    print(f"ID: {paper['_id']}, Title: {paper['title']}")
+Examples:
+```bash
+scholarinboxcli trending --json
+scholarinboxcli trending --category "Machine Learning" --days 30 --json
+scholarinboxcli trending --sort citations --asc --json
+```
+
+### Keyword Search
+
+```bash
+scholarinboxcli search QUERY [-n LIMIT] [--offset N] [--sort FIELD] [--json] [--no-retry]
+```
+
+Examples:
+```bash
+scholarinboxcli search "transformers" --json
+scholarinboxcli search "graph neural networks" --limit 10 --json
+scholarinboxcli search "LLM" --limit 5 --offset 10 --json
+```
+
+### Semantic Search
+
+```bash
+scholarinboxcli semantic [TEXT] [--file FILE] [-n LIMIT] [--offset N] [--json] [--no-retry]
+```
+
+Examples:
+```bash
+scholarinboxcli semantic "reasoning in large language models" --json
+scholarinboxcli semantic "diffusion models" --limit 5 --json
+scholarinboxcli semantic --file query.txt --json
+```
+
+---
+
+## Paper Rating (fork feature)
+
+```bash
+scholarinboxcli rate PAPER_ID RATING [--no-retry]
+```
+
+| Rating | Meaning |
+|--------|---------|
+| `1` | Upvote |
+| `-1` | Downvote |
+| `0` | Remove rating |
+
+Examples:
+```bash
+scholarinboxcli rate 4637041 1    # upvote
+scholarinboxcli rate 4637041 -1   # downvote
+scholarinboxcli rate 4637041 0    # remove rating
+```
+
+---
+
+## Bookmarks
+
+```bash
+scholarinboxcli bookmark list [--json]
+scholarinboxcli bookmark add PAPER_ID
+scholarinboxcli bookmark remove PAPER_ID
+```
+
+---
+
+## Collections
+
+```bash
+scholarinboxcli collection list [--json]
+scholarinboxcli collection create NAME
+scholarinboxcli collection rename OLD_NAME NEW_NAME
+scholarinboxcli collection delete NAME
+scholarinboxcli collection papers NAME [--json]
+scholarinboxcli collection add NAME PAPER_ID
+scholarinboxcli collection remove NAME PAPER_ID
+scholarinboxcli collection similar NAME [--json]
+```
+
+---
+
+## Conferences
+
+```bash
+scholarinboxcli conference list [--json]
+scholarinboxcli conference explore [--json]
+```
+
+---
+
+## Interactions
+
+```bash
+scholarinboxcli interactions [--json]
+```
+
+---
+
+## Global Options
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON (machine-readable) |
+| `--no-retry` | Disable automatic retry on rate limits |
+| `--help` | Show help for any command |
+
+---
+
+## Finding Paper IDs
+
+Paper IDs are in the `_id` field of paper objects returned by `digest`, `search`, `trending`, and `semantic`:
+
+```bash
+# Get trending papers and extract IDs (with jq)
+scholarinboxcli trending --json | jq '.digest_df[] | {id: ._id, title: .title}'
 ```
 
 ---
 
 ## Configuration
 
-| Environment Variable | Description |
-|---------------------|-------------|
-| `SCHOLAR_INBOX_SHA_KEY` | Authentication key |
-| `SCHOLAR_INBOX_API_BASE` | API base URL (default: https://api.scholar-inbox.com) |
+Cookies are stored at `~/.scholarinboxcli/cookies.json` after login.
 
-**OpenClaw Configuration** (`~/.openclaw/openclaw.json`):
-
-```json
-{
-  "skills": {
-    "entries": {
-      "scholar-inbox-api": {
-        "enabled": true,
-        "env": {
-          "SCHOLAR_INBOX_SHA_KEY": "your-sha-key-here"
-        }
-      }
-    }
-  }
-}
+Override base URL via environment variable:
+```bash
+export SCHOLAR_INBOX_API_BASE="https://www.scholar-inbox.com"
 ```
